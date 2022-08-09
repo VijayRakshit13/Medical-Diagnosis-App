@@ -1,0 +1,70 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.tree import plot_tree
+
+
+df = pd.read_csv('dataset.csv')
+a = pd.read_csv('symptom_Description.csv')
+b = pd.read_csv('symptom_precaution.csv')
+c = pd.read_csv('Symptom-severity.csv')
+
+
+print("total diseases: "+str(len(df['Disease'].unique() )))
+
+df["All_symptoms"] = 0
+for i in range(df.shape[0]):
+    values = df.iloc[i].values
+    values = values.tolist()
+    if 0 in values:
+        df["All_symptoms"][i] = values[1:values.index(0)]
+    else:
+        df["All_symptoms"][i] = values[1:]
+
+
+objects = (df.dtypes == 'object')
+object_cols = list(objects[objects].index)
+print(object_cols)
+column_values = df[['Symptom_1', 'Symptom_2', 'Symptom_3', 'Symptom_4',
+       'Symptom_5', 'Symptom_6', 'Symptom_7', 'Symptom_8', 'Symptom_9',
+       'Symptom_10', 'Symptom_11', 'Symptom_12', 'Symptom_13', 'Symptom_14',
+       'Symptom_15', 'Symptom_16', 'Symptom_17']].values.ravel()
+print(column_values)
+symptoms=pd.unique(column_values.tolist())
+
+
+print(symptoms)
+
+
+new_data = pd.DataFrame(columns = symptoms,index = df.index)
+new_data['All_symptoms']=df['All_symptoms']
+
+for i in new_data:
+    new_data[i] = df.apply(lambda x:1 if i in x.All_symptoms else 0, axis=1)
+
+
+new_data['Disease']=df['Disease']
+new_data=new_data.drop('All_symptoms',axis=1)
+new_data.isnull().sum()
+
+
+X = new_data.drop('Disease',axis=1)
+y = new_data['Disease']
+
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.2, random_state=0)
+
+clf = DecisionTreeClassifier(criterion = 'entropy')
+clf.fit(X_train, y_train)
+
+y_pred =  clf.predict(X_test)
+y_pred[:5]
+y_test.head(5)
+
+print('Accuracy Score on train data: ', accuracy_score(y_true=y_train, y_pred=clf.predict(X_train)))
+print('Accuracy Score on test data: ', accuracy_score(y_true=y_test, y_pred=y_pred))
+
+import pickle
+with open('decision_tree.pkl','wb') as f:
+    pickle.dump(clf,f)
